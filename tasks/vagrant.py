@@ -27,6 +27,11 @@ def __setup_provision(task):
     This tries to execute the provision twice due to
     problems described in issue #20
     """
+    try:
+        task.execute_subtask(VagrantBoxPrune())
+    except Exception as exc:
+        logging.debug(exc, exc_info=True)
+
     task.execute_subtask(
         VagrantBoxDownload(
             box_name=task.template_name,
@@ -117,6 +122,19 @@ class VagrantBoxDownload(VagrantTask):
             except TaskException as exc:
                 logging.warning('Failed to create libvirt link to image')
                 raise exc
+
+
+class VagrantBoxPrune(VagrantTask):
+    """
+    Prune old vagrant images.
+    """
+    def _run(self):
+        try:
+            self.execute_subtask(
+                PopenTask(['vagrant', 'box', 'prune'], timeout=None))
+        except TaskException as exc:
+            logging.warning('Failed to prune boxes.')
+            raise exc
 
 
 class VagrantBox(object):
